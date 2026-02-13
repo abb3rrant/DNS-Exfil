@@ -9,8 +9,8 @@ All data travels as standard DNS A record queries — no TXT records, no HTTPS, 
 Requires Go 1.21+.
 
 ```bash
-go build -o bin/exfil  ./cmd/client
-go build -o bin/server ./cmd/server
+CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/exfil  ./cmd/client
+CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/server ./cmd/server
 ```
 
 ## Usage
