@@ -150,7 +150,7 @@ func (s *Sender) sendWithRetry(fqdn string) (net.IP, error) {
 
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(fqdn), qtype)
-	m.RecursionDesired = false
+	m.RecursionDesired = true
 
 	var lastErr error
 	for attempt := 0; attempt <= s.cfg.MaxRetries; attempt++ {
