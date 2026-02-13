@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ type SenderConfig struct {
 	Concurrency int
 	Timeout     time.Duration
 	MaxRetries  int
+	UseTXT      bool
 }
 
 // Sender transmits chunked file data over DNS queries.
@@ -141,8 +143,13 @@ func (s *Sender) sendWithRetry(fqdn string) (net.IP, error) {
 	c.Net = "udp"
 	c.Timeout = s.cfg.Timeout
 
+	qtype := dns.TypeA
+	if s.cfg.UseTXT {
+		qtype = dns.TypeTXT
+	}
+
 	m := new(dns.Msg)
-	m.SetQuestion(dns.Fqdn(fqdn), dns.TypeA)
+	m.SetQuestion(dns.Fqdn(fqdn), qtype)
 	m.RecursionDesired = false
 
 	var lastErr error
@@ -161,6 +168,20 @@ func (s *Sender) sendWithRetry(fqdn string) (net.IP, error) {
 		if len(resp.Answer) == 0 {
 			lastErr = fmt.Errorf("no answer records")
 			continue
+		}
+
+		if s.cfg.UseTXT {
+			txt, ok := resp.Answer[0].(*dns.TXT)
+			if !ok {
+				lastErr = fmt.Errorf("unexpected answer type")
+				continue
+			}
+			ip := net.ParseIP(strings.Join(txt.Txt, ""))
+			if ip == nil {
+				lastErr = fmt.Errorf("invalid IP in TXT response: %v", txt.Txt)
+				continue
+			}
+			return ip, nil
 		}
 
 		a, ok := resp.Answer[0].(*dns.A)

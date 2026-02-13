@@ -2,7 +2,7 @@
 
 A DNS data exfiltration tool. The client reads a file, encrypts it (AES-256-GCM with Argon2id key derivation), chunks it into DNS-safe labels, and sends it as A record queries to the server. The server reassembles, decrypts, verifies integrity, and writes the file to disk.
 
-All data travels as standard DNS A record queries — no TXT records, no HTTPS, no custom protocols.
+All data travels as standard DNS queries — A records by default, or TXT records with `--txt` — no HTTPS, no custom protocols.
 
 ## Build
 
@@ -52,6 +52,7 @@ CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/server ./cmd/server
 | `--concurrency` | `10` | Parallel worker goroutines |
 | `--timeout` | `2s` | Per-query timeout |
 | `--retry` | `3` | Max retries per query (exponential backoff) |
+| `--txt` | `false` | Use TXT record queries instead of A records |
 
 ## Quick Test (localhost)
 
@@ -88,7 +89,7 @@ This includes unit tests for encoding, crypto, and protocol, plus a full end-to-
    - **data** — transmits one chunk of ciphertext (sent concurrently)
    - **fin** — signals completion with the plaintext MD5 for verification
 
-4. **Server** responds with coded A record IPs: `1.0.0.1` (ACK), `1.0.0.2` (NACK), `1.0.0.3` (COMPLETE), `1.0.0.4` (INCOMPLETE). On receiving fin, it reassembles chunks in order, decrypts, verifies the MD5, and writes the file.
+4. **Server** responds with coded IPs: `1.0.0.1` (ACK), `1.0.0.2` (NACK), `1.0.0.3` (COMPLETE), `1.0.0.4` (INCOMPLETE). By default, responses are A records. When the client sends TXT queries (`--txt`), the server auto-detects the query type and responds with TXT records containing the same IP string. On receiving fin, it reassembles chunks in order, decrypts, verifies the MD5, and writes the file.
 
 5. If the server reports INCOMPLETE on fin, the client resends all data chunks and retries.
 

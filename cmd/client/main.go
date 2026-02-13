@@ -18,6 +18,7 @@ func main() {
 	concurrency := flag.Int("concurrency", 10, "Number of concurrent workers")
 	timeout := flag.Duration("timeout", 2*time.Second, "Per-query timeout")
 	retries := flag.Int("retry", 3, "Maximum retries per query")
+	useTXT := flag.Bool("txt", false, "Use TXT record queries instead of A records")
 	flag.Parse()
 
 	if *filePath == "" || *encKey == "" || *domain == "" {
@@ -39,6 +40,7 @@ func main() {
 		Concurrency: *concurrency,
 		Timeout:     *timeout,
 		MaxRetries:  *retries,
+		UseTXT:      *useTXT,
 	})
 
 	if err := sender.Send(cf); err != nil {
